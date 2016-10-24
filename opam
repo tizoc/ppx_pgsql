@@ -1,0 +1,29 @@
+opam-version: "1.2"
+name: "ppx_pgsql"
+version: "0.1"
+author: "Bruno Deferrari <utizoc@gmail.com>"
+maintainer: "Bruno Deferrari <utizoc@gmail.com>"
+homepage: "https://github.com/tizoc/ppx_pgsql/"
+build: [
+    ["./configure" "--prefix=%{prefix}%"]
+    [make "build"]
+]
+install: [
+    [make "install"]
+]
+build-test: [make "test"]
+remove: [
+    ["ocamlfind" "remove" "ppx_pgsql"]
+]
+depends: [
+    "ocamlfind" {build}
+]
+
+tags: ["postgresql" "pgocaml" "ppx"]
+
+available: [
+    ocaml-version >= "4.03"
+]
+
+dev-repo: "https://github.com/tizoc/ppx_pgsql.git"
+bug-reports: "https://github.com/tizoc/ppx_pgsql/issues/"

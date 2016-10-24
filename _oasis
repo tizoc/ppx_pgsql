@@ -1,0 +1,42 @@
+OASISFormat:            0.4
+Name:                   PG'OCaml PPX Syntax
+Version:                0.1
+Synopsis:               PPX Syntax for PG'OCaml
+Homepage:               https://github.com/tizoc/ppx-pgsql
+Authors:                Bruno Deferrari
+License:                BSD-3-clause
+LicenseFile:            LICENSE
+Plugins:                META (0.4), DevFiles (0.4)
+BuildTools:             ocamlbuild
+
+OCamlVersion:          >= 4.03
+AlphaFeatures:         ocamlbuild_more_args
+
+Library "ppx_pgsql"
+  Path:                 src
+  FindlibName:          ppx_pgsql
+  Modules:              Ppx_pgsql
+  Install:              true
+  BuildDepends:         pgocaml, compiler-libs.common, ppx_tools.metaquot
+  CompiledObject:       best
+  XMETAType:            syntax
+  XMETADescription:     Syntax extension for PG'OCaml using PPX
+  XMETAExtraLines:      ppx = "ppx_pgsql"
+
+Executable "ppx_pgsql"
+  Path:                 src
+  CompiledObject:       byte
+  MainIs:               ppx_pgsql.ml
+  BuildDepends:         pgocaml, compiler-libs.common, ppx_tools.metaquot
+
+Executable "test_ppx"
+  Build$:               flag(tests)
+  Install:              false
+  Path:                 tests
+  MainIs:               test_ppx.ml
+  BuildDepends:         pgocaml, oUnit
+  BuildTools:           ppx_pgsql
+
+Test "ppx"
+  Command:              $test_ppx
+  WorkingDirectory:     tests
