@@ -2,7 +2,7 @@ OASISFormat:            0.4
 Name:                   PG'OCaml PPX Syntax
 Version:                0.1
 Synopsis:               PPX Syntax for PG'OCaml
-Homepage:               https://github.com/tizoc/ppx-pgsql
+Homepage:               https://github.com/tizoc/ppx_pgsql
 Authors:                Bruno Deferrari
 License:                BSD-3-clause
 LicenseFile:            LICENSE
