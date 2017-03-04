@@ -35,3 +35,9 @@ PGOCaml.monad
 - `$@name` - list expression value
 - `$?name` - option value (None becomes NULL)
 - `$@?name` - option list expression value
+
+## To install
+
+```
+opam pin add ppx_pgsql -k git https://github.com/tizoc/ppx_pgsql.git
+```
