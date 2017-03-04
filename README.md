@@ -1,4 +1,4 @@
-# ppx_pgocaml
+# ppx_pgsql
 
 Syntax extension for embedded SQL queries using PG'OCaml.
 
