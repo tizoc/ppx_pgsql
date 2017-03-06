@@ -19,6 +19,7 @@ Library "ppx_pgsql"
   Install:              true
   BuildDepends:         pgocaml, compiler-libs.common, ppx_tools.metaquot
   CompiledObject:       best
+  XMETAEnable:          true
   XMETAType:            syntax
   XMETADescription:     Syntax extension for PG'OCaml using PPX
   XMETAExtraLines:      ppx = "ppx_pgsql"
