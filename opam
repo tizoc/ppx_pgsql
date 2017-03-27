@@ -17,6 +17,7 @@ remove: [
 ]
 depends: [
     "ocamlfind" {build}
+    "pgocaml"
 ]
 
 tags: ["postgresql" "pgocaml" "ppx"]
