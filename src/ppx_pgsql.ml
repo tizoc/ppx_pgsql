@@ -1,3 +1,6 @@
+open Migrate_parsetree
+open Ast_403
+
 open Ast_mapper
 open Ast_helper
 open Asttypes
@@ -392,7 +395,7 @@ let expand_query loc query =
   end in
   Build_expr.labelled_fun ~loc (Varmap.to_list varmap) final_expr
 
-let pgsql_mapper _argv =
+let pgsql_mapper _config _cookies =
   { default_mapper with
     expr = fun mapper expr ->
       match expr with
@@ -421,4 +424,5 @@ let pgsql_mapper _argv =
         default_mapper.expr mapper other
   }
 
-let _ = register "pgsql" pgsql_mapper
+let () =
+  Driver.register ~name:"pgsql" Versions.ocaml_403 pgsql_mapper
