@@ -13,6 +13,7 @@ depends: [
     "ppx_driver"
     "ppx_metaquot"
     "jbuilder"                {build & >= "1.0+beta12"}
+    "ocamlfind"               {build}
     "ocaml-migrate-parsetree" {>= "0.4"}
 ]
 tags: ["postgresql" "pgocaml" "ppx"]
