@@ -337,14 +337,17 @@ module Build_expr = struct
         original_query ^ ". Values are: " ^ values in
       raise (PGOCaml.Error msg)]
 
-  let rec labelled_fun ~loc vars body_expr =
+  let rec labelled_fun ~loc ?(seen_names = []) vars body_expr =
     match vars with
     | [] -> body_expr
+    | (name, _, _)::rest when List.mem name seen_names ->
+      labelled_fun ~loc ~seen_names rest body_expr
     | (name, _, is_option)::rest ->
+      let seen_names = name::seen_names in
       let param = if is_option then (Optional name) else (Labelled name) in
       Exp.fun_ ~loc param None
         (Pat.var ~loc { txt = name; loc })
-        (labelled_fun ~loc rest body_expr)
+        (labelled_fun ~loc ~seen_names rest body_expr)
 end
 
 let expand_query loc query =
