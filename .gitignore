@@ -1,2 +1,3 @@
 _build
+.merlin
 ppx_pgsql.install
