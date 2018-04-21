@@ -1,5 +1,5 @@
 open Migrate_parsetree
-open Ast_403
+open Ast_406
 
 open Ast_mapper
 open Ast_helper
@@ -61,9 +61,7 @@ let rec enumerate start finish =
   then start :: enumerate (start+1) finish
   else []
 
-let loc_raise loc exn =
-  Printf.fprintf stderr "loc_raise %s\n%!" (Printexc.to_string exn);
-  raise exn
+let raise_errorf = Location.raise_errorf
 
 let mkconst_string ~loc str =
   Exp.constant ~loc (Const.string str)
@@ -82,18 +80,36 @@ module Varmap = struct
   let empty () =
     { size = 0; elements = Array.init 1000 (fun _ -> empty_value); }
 
+  let verify { size; elements; } =
+    for i = 0 to size do
+      let name, is_list, is_option = elements.(i) in
+      for j = i + 1 to size do
+        let name', is_list', is_option' = elements.(j) in
+        if name = name' && not (is_list = is_list' && is_option = is_option') then begin
+          failwith (
+            "Parameter '" ^ name ^
+            "' appears more than once with different modifiers"
+          )
+        end
+      done
+    done
+
   let from_query_fragments query_fragments =
-    List.fold_left
-      begin fun vm fragment ->
-        match fragment with
-        | `Literal text -> vm
-        | `Variable v ->
-          let varnum = vm.size + 1 in
-          vm.elements.(varnum) <- v;
-          { vm with size = varnum }
-      end
-      (empty ())
-      query_fragments
+    let result =
+      List.fold_left
+        begin fun vm fragment ->
+          match fragment with
+          | `Literal text -> vm
+          | `Variable v ->
+            let varnum = vm.size + 1 in
+            vm.elements.(varnum) <- v;
+            { vm with size = varnum }
+        end
+        (empty ())
+        query_fragments
+    in
+    verify result;
+    result
 
   let size vm = vm.size
 
@@ -124,7 +140,7 @@ let varname_re =
  *   $@name    - list expression value
  *   $?name    - option value (None becomes NULL)
  *   $@?name   - option list expression value
- *)
+*)
 let query_vars_re =
   let open Re in
   compile @@
@@ -353,18 +369,21 @@ end
 let expand_query loc query =
   let ct_dbh = connect () in
   let query_fragments = split_query query in
-  let varmap = Varmap.from_query_fragments query_fragments in
+  let varmap =
+    try Varmap.from_query_fragments query_fragments
+    with Failure msg -> raise_errorf ~loc "[%%sqlf] %s" msg
+  in
   let query = build_query_template query_fragments in
   let params, results =
     try
       PGOCaml.prepare ct_dbh ~query ();
       PGOCaml.describe_statement ct_dbh ()
     with
-    | exn -> loc_raise loc exn in
+    | PGOCaml.PostgreSQL_Error (msg, _) -> raise_errorf ~loc "[%%sqlf]: %s" msg
+    | exn -> raise_errorf ~loc "[%%sqlf]: %s" (Printexc.to_string exn) in
 
   if Varmap.size varmap <> List.length params then
-    loc_raise loc (
-      Failure "Unexpected amount of parameters detected");
+    raise_errorf ~loc "[%%sqlf]: Unexpected amount of parameters detected";
 
   let params_mapper_expr =
     Build_expr.params_mapper ~loc ~dbh:ct_dbh ~params ~varmap in
@@ -404,17 +423,24 @@ let pgsql_mapper _config _cookies =
       match expr with
       (* [%sqlf <sql string>] *)
       | { pexp_desc =
-          Pexp_extension (
-            { txt = "sqlf"; _ },
-            PStr [{
-                pstr_desc = Pstr_eval ({
-                    pexp_desc = Pexp_constant (Pconst_string (str, _))}, _)
-              }]);
+            Pexp_extension (
+              { txt = "sqlf"; _ },
+              PStr [{
+                  pstr_desc = Pstr_eval ({
+                      pexp_desc = Pexp_constant (Pconst_string (str, _))}, _)
+                }]);
           pexp_loc = loc;
         } ->
         begin
           try expand_query loc str
-          with exn ->
+          with
+          | Location.Error error ->
+            { expr with
+              pexp_desc = Pexp_extension (
+                  extension_of_error error
+                )
+            }
+          | exn ->
             { expr with
               pexp_desc = Pexp_extension (
                   extension_of_error @@
@@ -428,4 +454,4 @@ let pgsql_mapper _config _cookies =
   }
 
 let () =
-  Driver.register ~name:"pgsql" Versions.ocaml_403 pgsql_mapper
+  Driver.register ~name:"pgsql" Versions.ocaml_406 pgsql_mapper
