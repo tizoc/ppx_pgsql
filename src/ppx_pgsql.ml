@@ -198,12 +198,12 @@ module Build_expr = struct
                        [%e variable]]]
            | true, false ->       (* list, not optional *)
              [%expr
-               List.map
+               Stdlib.List.map
                  (fun x -> Some ([%e to_string_func] x))
                  [%e variable]]
            | true, true ->        (* list and optional *)
              [%expr
-               List.map
+               Stdlib.List.map
                  (fun x -> PGOCaml_aux.Option.map [%e to_string_func])
                  [%e variable]]
          in
@@ -291,42 +291,42 @@ module Build_expr = struct
           incr placeholder_num;
           "$" ^ string_of_int !placeholder_num in
         let fragments =
-          List.map (
+          Stdlib.List.map (
             function
             | `Literal text -> text
             | `Variable (name, false (* is_list *), _) ->
               incr param_idx;
               mkplaceholder ()
             | `Variable (name, true (* is_list *), _) ->
-              let list_param = List.nth params !param_idx in
-              let list_placeholders = List.map mkplaceholder list_param in
+              let list_param = Stdlib.List.nth params !param_idx in
+              let list_placeholders = Stdlib.List.map mkplaceholder list_param in
               incr param_idx;
-              "(" ^ String.concat "," list_placeholders ^ ")"
+              "(" ^ Stdlib.String.concat "," list_placeholders ^ ")"
           ) query_fragments in
-        String.concat "" fragments in
+        Stdlib.String.concat "" fragments in
       let params : string option list list = [%e params_mapper_expr] in
       let query_fragments = [%e query_fragments_expr] in
       let query = rebuild_query_with_placeholders query_fragments params in
-      let params = List.flatten params in
+      let params = Stdlib.List.flatten params in
       let unique_query_identifier =
-        "ppx_pgsql." ^ Digest.to_hex (Digest.string query) in
+        "ppx_pgsql." ^ Stdlib.Digest.to_hex (Stdlib.Digest.string query) in
       let dbh_private_data dbh =
         try PGOCaml.private_data dbh
         with
         | Not_found ->
-          let hash = Hashtbl.create 17 in
+          let hash = Stdlib.Hashtbl.create 17 in
           PGOCaml.set_private_data dbh hash;
           hash
       in
       let maybe_prepare_query ~dbh ~query ~name =
         let hash = dbh_private_data dbh in
-        let is_prepared = Hashtbl.mem hash name in
+        let is_prepared = Stdlib.Hashtbl.mem hash name in
         if is_prepared then PGOCaml.return ()
         else
           PGOCaml.bind
             (PGOCaml.prepare dbh ~name ~query ())
             (fun () ->
-               Hashtbl.add hash name true;
+               Stdlib.Hashtbl.add hash name true;
                PGOCaml.return ())
       in
       fun dbh ->
@@ -339,10 +339,10 @@ module Build_expr = struct
   let columns_count_mismatch_error ~loc query =
     [%expr
       let original_query = [%e mkconst_string ~loc query] in
-      let values = String.concat "; " (
-          List.map (
+      let values = Stdlib.String.concat "; " (
+          Stdlib.List.map (
             function
-            | Some str -> Printf.sprintf "%S" str
+            | Some str -> Stdlib.Printf.sprintf "%S" str
             | None -> "NULL"
           ) row) in             (* 'row' comes from context *)
       let msg =
@@ -401,7 +401,7 @@ let expand_query loc query =
             ([%e exec_query_expr] dbh)
             (fun rows ->
                PGOCaml.return @@
-               List.rev_map begin function
+               Stdlib.List.rev_map begin function
                  | [%p match_row_pat] -> [%e results_mapper_expr]
                  | row -> [%e Build_expr.columns_count_mismatch_error ~loc query]
                end rows)
