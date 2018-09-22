@@ -1,0 +1,10 @@
+(library
+ (name ppx_pgsql)
+ (public_name ppx_pgsql)
+ (synopsis "PG'OCaml PPX syntax extension")
+ (modules ppx_pgsql)
+ (kind ppx_rewriter)
+ (flags (:standard -safe-string))
+ (libraries pgocaml ppxlib)
+ (ppx_runtime_libraries pgocaml)
+ (preprocess (pps ppx_metaquot)))

@@ -1,9 +1,0 @@
-(library
- ((name ppx_pgsql)
-  (public_name ppx_pgsql)
-  (kind ppx_rewriter)
-  (flags (:standard -safe-string))
-  (libraries (pgocaml ppx_driver))
-  (preprocess (pps (ppx_metaquot)))))
-
-(jbuild_version 1)
