@@ -7,4 +7,4 @@
  (flags (:standard -safe-string))
  (libraries pgocaml ppxlib)
  (ppx_runtime_libraries pgocaml)
- (preprocess (pps ppx_metaquot)))
+ (preprocess (pps ppxlib.metaquot)))
