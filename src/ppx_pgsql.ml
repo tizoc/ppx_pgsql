@@ -35,10 +35,10 @@ let connect () =
     connection := Some dbh;
     prepare_connection_reflection_queries dbh
 
-let rec name_of_type ?modifier dbh oid =
+let rec name_of_type ~loc ?modifier dbh oid =
   try
     PGOCaml.name_of_type ?modifier oid
-  with PGOCaml.Error msg as exc ->
+  with PGOCaml.Error msg as exn ->
     let params = [Some (PGOCaml.string_of_oid oid)] in
     let exec = PGOCaml.execute dbh ~params in
     match exec ~name:typname_query () with
@@ -52,16 +52,14 @@ let rec name_of_type ?modifier dbh oid =
         | [[Some "d"; Some typbasetype]] ->
           (* Result of CREATE DOMAIN, have to find underlying data type *)
           (* Follow parents until one is recognized *)
-          name_of_type ?modifier dbh (PGOCaml.oid_of_string typbasetype)
-        | _ -> raise exc
+          name_of_type ~loc ?modifier dbh (PGOCaml.oid_of_string typbasetype)
+        | _ -> Location.raise_errorf ~loc "[%%sqlf]: %s" (Printexc.to_string exn)
       end
 
 let rec enumerate start finish =
   if start < finish
   then start :: enumerate (start+1) finish
   else []
-
-let raise_errorf = Location.raise_errorf
 
 let mkconst_string ~loc str =
   Exp.constant ~loc (Const.string str)
@@ -185,7 +183,7 @@ module Build_expr = struct
     List.fold_right
       (fun (i, { PGOCaml.param_type }) rest ->
          let name, is_list, is_option = Varmap.get varmap i in
-         let type_name = name_of_type dbh param_type in
+         let type_name = name_of_type ~loc dbh param_type in
          let converter_name = "string_of_" ^ type_name in
          let to_string_func = mkident ~loc converter_name in
          let to_string_func = [%expr PGOCaml.([%e to_string_func])] in
@@ -219,7 +217,7 @@ module Build_expr = struct
       List.mapi (
         fun i result ->
           let field_type = result.PGOCaml.field_type in
-          let type_name = name_of_type dbh field_type in
+          let type_name = name_of_type ~loc dbh field_type in
           let converter_name = type_name ^ "_of_string" in
           let of_string_func = mkident ~loc converter_name in
           let of_string_func = [%expr PGOCaml.([%e of_string_func])] in
@@ -371,7 +369,7 @@ let expand_query loc query =
   let query_fragments = split_query query in
   let varmap =
     try Varmap.from_query_fragments query_fragments
-    with Failure msg -> raise_errorf ~loc "[%%sqlf] %s" msg
+    with Failure msg -> Location.raise_errorf ~loc "[%%sqlf] %s" msg
   in
   let query = build_query_template query_fragments in
   let params, results =
@@ -379,11 +377,11 @@ let expand_query loc query =
       PGOCaml.prepare ct_dbh ~query ();
       PGOCaml.describe_statement ct_dbh ()
     with
-    | PGOCaml.PostgreSQL_Error (msg, _) -> raise_errorf ~loc "[%%sqlf]: %s" msg
-    | exn -> raise_errorf ~loc "[%%sqlf]: %s" (Printexc.to_string exn) in
+    | PGOCaml.PostgreSQL_Error (msg, _) -> Location.raise_errorf ~loc "[%%sqlf]: %s" msg
+    | exn -> Location.raise_errorf ~loc "[%%sqlf]: %s" (Printexc.to_string exn) in
 
   if Varmap.size varmap <> List.length params then
-    raise_errorf ~loc "[%%sqlf]: Unexpected amount of parameters detected";
+    Location.raise_errorf ~loc "[%%sqlf]: Unexpected amount of parameters detected";
 
   let params_mapper_expr =
     Build_expr.params_mapper ~loc ~dbh:ct_dbh ~params ~varmap in
@@ -431,24 +429,7 @@ let pgsql_mapper _config _cookies =
                 }]);
           pexp_loc = loc;
         } ->
-        begin
-          try expand_query loc str
-          with
-          | Location.Error error ->
-            { expr with
-              pexp_desc = Pexp_extension (
-                  extension_of_error error
-                )
-            }
-          | exn ->
-            { expr with
-              pexp_desc = Pexp_extension (
-                  extension_of_error @@
-                  Location.error ~loc (
-                    Printf.sprintf "PGOCaml: %s" (Printexc.to_string exn))
-                )
-            }
-        end
+        expand_query loc str
       | other ->
         default_mapper.expr mapper other
   }
