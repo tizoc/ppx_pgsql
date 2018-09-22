@@ -38,7 +38,7 @@ let connect () =
 let rec name_of_type ~loc ?modifier dbh oid =
   try
     PGOCaml.name_of_type ?modifier oid
-  with PGOCaml.Error msg as exn ->
+  with PGOCaml.Error _msg as exn ->
     let params = [Some (PGOCaml.string_of_oid oid)] in
     let exec = PGOCaml.execute dbh ~params in
     match exec ~name:typname_query () with
@@ -97,7 +97,7 @@ module Varmap = struct
       List.fold_left
         begin fun vm fragment ->
           match fragment with
-          | `Literal text -> vm
+          | `Literal _text -> vm
           | `Variable v ->
             let varnum = vm.size + 1 in
             vm.elements.(varnum) <- v;
@@ -170,7 +170,7 @@ let build_query_template query_fragments =
   List.map (
     function
     | `Literal text -> text
-    | `Variable (name, is_list, is_option) ->
+    | `Variable (_name, is_list, _is_option) ->
       incr i;
       if is_list
       then Printf.sprintf "($%d)" !i
@@ -416,23 +416,25 @@ let expand_query loc query =
   Build_expr.labelled_fun ~loc (Varmap.to_list varmap) final_expr
 
 let pgsql_mapper _config _cookies =
-  { default_mapper with
-    expr = fun mapper expr ->
-      match expr with
+  let expr mapper expr =
+    match expr with
       (* [%sqlf <sql string>] *)
       | { pexp_desc =
             Pexp_extension (
               { txt = "sqlf"; _ },
               PStr [{
                   pstr_desc = Pstr_eval ({
-                      pexp_desc = Pexp_constant (Pconst_string (str, _))}, _)
+                      pexp_desc = Pexp_constant (Pconst_string (str, _)); _}, _);
+                  _
                 }]);
-          pexp_loc = loc;
+          pexp_loc;
+          _
         } ->
-        expand_query loc str
+        expand_query pexp_loc str
       | other ->
         default_mapper.expr mapper other
-  }
+  in
+  { default_mapper with expr }
 
 let () =
   Driver.register ~name:"pgsql" Versions.ocaml_406 pgsql_mapper
