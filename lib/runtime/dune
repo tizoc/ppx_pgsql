@@ -1,0 +1,4 @@
+(library
+  (name ppx_pgsql_runtime)
+  (public_name ppx_pgsql.runtime)
+  (libraries pgocaml))

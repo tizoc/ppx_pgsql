@@ -6,5 +6,5 @@
  (kind ppx_rewriter)
  (flags (:standard -safe-string))
  (libraries pgocaml ppxlib)
- (ppx_runtime_libraries pgocaml)
+ (ppx_runtime_libraries pgocaml ppx_pgsql.runtime)
  (preprocess (pps ppxlib.metaquot)))

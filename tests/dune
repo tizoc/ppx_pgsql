@@ -1,4 +1,4 @@
 (executable
   (name test_ppx)
   (preprocess (pps ppx_pgsql ppxlib.runner))
-  (libraries pgocaml))
+  (libraries pgocaml ppx_pgsql_runtime))
