@@ -63,6 +63,7 @@ module Queries = struct
       SELECT id, line, status, created_at, updated_at
         FROM ppx_pgsql_example_todo_entries
     ORDER BY created_at DESC
+       LIMIT $limit
     |}]
 
   let retrieve_todos_by_status = [%sqlf {|
@@ -70,6 +71,7 @@ module Queries = struct
         FROM ppx_pgsql_example_todo_entries
        WHERE status = $status
     ORDER BY created_at DESC
+       LIMIT $limit
     |}]
 end
 
@@ -112,14 +114,15 @@ let remove_todo id =
   Store.run_query @@
   Queries.remove_todo ~id
 
-let retrieve_todos ?status () =
+let retrieve_todos ?status ?(limit=100) () =
+  let limit = Int64.of_int limit in
   let%lwt results =
     Store.run_query @@ begin
       match status with
-      | None -> Queries.retrieve_all_todos
+      | None -> Queries.retrieve_all_todos ~limit
       | Some status ->
         let status = string_of_status status in
-        Queries.retrieve_todos_by_status ~status
+        Queries.retrieve_todos_by_status ~status ~limit
     end
   in
   Lwt.return @@ List.map todo_of_row results
