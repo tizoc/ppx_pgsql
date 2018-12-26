@@ -1,0 +1,4 @@
+(executable
+  (name todo_lwt)
+  (preprocess (pps ppx_pgsql lwt_ppx ppxlib.runner))
+  (libraries lwt lwt.unix unix pgocaml ppx_pgsql_runtime))
