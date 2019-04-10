@@ -45,8 +45,11 @@ let rebuild_query_with_placeholders query_fragments params =
       | `Variable (_name, true (* is_list *), _) ->
         let list_param = List.nth params !param_idx in
         let list_placeholders = List.map mkplaceholder list_param in
+        let expr = match list_placeholders with
+          | [] -> "NULL"
+          | _ -> String.concat "," list_placeholders in
         incr param_idx;
-        "(" ^ String.concat "," list_placeholders ^ ")"
+        "(" ^ expr ^ ")"
     ) query_fragments in
   String.concat "" fragments
 
