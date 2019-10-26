@@ -5,6 +5,6 @@
  (modules ppx_pgsql)
  (kind ppx_rewriter)
  (flags (:standard -safe-string))
- (libraries pgocaml ppxlib)
+ (libraries pgocaml ocaml-migrate-parsetree)
  (ppx_runtime_libraries pgocaml ppx_pgsql.runtime)
- (preprocess (pps ppxlib.metaquot)))
+ (preprocess (pps ppx_tools_versioned.metaquot_408)))
