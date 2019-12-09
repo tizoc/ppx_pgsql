@@ -160,7 +160,7 @@ let split_query query =
     | `Text text -> `Literal text
     | `Delim subs ->
       let name, is_list, is_option =
-        Re.get subs 3, Re.test subs 1, Re.test subs 2 in
+        Re.Group.get subs 3, Re.Group.test subs 1, Re.Group.test subs 2 in
       `Variable (name, is_list, is_option)
   end
 
