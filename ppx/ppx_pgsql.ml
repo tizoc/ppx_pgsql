@@ -35,9 +35,9 @@ let connect () =
     connection := Some dbh;
     prepare_connection_reflection_queries dbh
 
-let rec name_of_type ~loc ?modifier dbh oid =
+let rec name_of_type ~loc dbh oid =
   try
-    PGOCaml.name_of_type ?modifier oid
+    PGOCaml.name_of_type oid
   with PGOCaml.Error _msg as exn ->
     let params = [Some (PGOCaml.string_of_oid oid)] in
     let exec = PGOCaml.execute dbh ~params in
@@ -52,7 +52,7 @@ let rec name_of_type ~loc ?modifier dbh oid =
         | [[Some "d"; Some typbasetype]] ->
           (* Result of CREATE DOMAIN, have to find underlying data type *)
           (* Follow parents until one is recognized *)
-          name_of_type ~loc ?modifier dbh (PGOCaml.oid_of_string typbasetype)
+          name_of_type ~loc dbh (PGOCaml.oid_of_string typbasetype)
         | _ -> Location.raise_errorf ~loc "[%%sqlf]: %s" (Printexc.to_string exn)
       end
 
