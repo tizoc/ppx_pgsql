@@ -1,5 +1,5 @@
 open Migrate_parsetree
-open Ast_406
+open Ast_408
 
 open Ast_mapper
 open Ast_helper
@@ -390,4 +390,4 @@ let pgsql_mapper _config _cookies =
   { default_mapper with expr }
 
 let () =
-  Driver.register ~name:"pgsql" Versions.ocaml_406 pgsql_mapper
+  Driver.register ~name:"pgsql" Versions.ocaml_408 pgsql_mapper
