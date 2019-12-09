@@ -1,6 +1,6 @@
 opam-version: "1.2"
 name: "ppx_pgsql"
-version: "0.3"
+version: "0.4"
 author: "Bruno Deferrari <utizoc@gmail.com>"
 maintainer: "Bruno Deferrari <utizoc@gmail.com>"
 homepage: "https://github.com/tizoc/ppx_pgsql"
