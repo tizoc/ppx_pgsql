@@ -41,3 +41,71 @@ PGOCaml.monad
 ```
 opam pin add ppx_pgsql -k git https://github.com/tizoc/ppx_pgsql.git
 ```
+
+## Some tips
+
+### Views and NULL-able heuristic
+
+This rewriter tries its best to figure out which columns are NULL-able and which are not, but sometimes it fails to do so.
+
+One case is with columns in views, which will be assumed to always be NULL-able.
+
+To fix this, you can alter the view metadata contained in the `pg_attribute` table, and set `attnotnull` to `true`:
+
+```sql
+UPDATE pg_attribute SET attnotnull = 't'
+ WHERE attrelid IN (
+   SELECT oid FROM pg_class
+    WHERE relname = 'name_of_view');
+```
+
+### Outer joins, and using `COALESCE`
+
+When performing joins, columns that on the original table are qualified as not NULL-able, may become NULL-able, this will make the heuristic fail.
+
+One workaround is to create a view for such query, and then use the trick described above.
+
+[Another option](https://github.com/tizoc/ppx_pgsql/issues/4#issuecomment-479106321) it to use the `COALESCE` function to force the column to be NULL-able:
+
+```sql
+-- Given these tables
+CREATE TABLE authors (id serial PRIMARY KEY, name varchar(255) NOT NULL);
+INSERT INTO authors (id, name) VALUES (1, 'John Doe');
+CREATE TABLE books (id serial PRIMARY KEY, title varchar(255) NOT NULL, author int NOT NULL REFERENCES authors(id) ON DELETE CASCADE);
+
+-- This join could result in NULL values for books.title
+SELECT
+ authors.name,
+ coalesce(books.title) -- inferred as NULL-able now
+FROM authors
+LEFT OUTER JOIN books ON books.author = authors.id
+```
+
+Credit to @NightBlues for coming up with this solution.
+
+### IN/NOT IN operator when using a possibly empty dynamic list of values
+
+Using list expressions to build `IN`/`NOT IN` query expresions (`IN $@name` or `NOT IN $@name`) is not encourated when the list of values is dynamic and has the potential of being empty.
+
+The problem with doing so is that the list may be empty, resulting in an invalud query being generated (`IN ()` and `NOT IN ()` are not valid SQL). What is worse, this failure will happen at runtime.
+Additionaly, by doing so with lists of varying length, a new prepared statement will be created at runtime for each one of the lengths.
+
+An alternative is to use the `ANY` and `ALL` operators with arrays:
+
+```sql
+-- This
+SELECT COUNT(*) FROM users
+WHERE id IN $@user_ids_list
+
+-- Becomes
+SELECT COUNT(*) FROM users
+WHERE id = ANY($user_ids_list::int[])
+
+-- And this
+SELECT COUNT(*) FROM users
+WHERE id NOT IN $@user_ids_list
+
+-- Becomes
+SELECT COUNT(*) FROM users
+WHERE id <> ALL($user_ids_list::int[])
+```
