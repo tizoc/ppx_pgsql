@@ -85,7 +85,7 @@ Credit to @NightBlues for coming up with this solution.
 
 ### IN/NOT IN operator when using a possibly empty dynamic list of values
 
-Using list expressions to build `IN`/`NOT IN` query expresions (`IN $@name` or `NOT IN $@name`) is not encourated when the list of values is dynamic and has the potential of being empty.
+Using list expressions to build `IN`/`NOT IN` query expresions (`IN $@name` or `NOT IN $@name`) is not encouraged when the list of values is dynamic and has the potential of being empty.
 
 The problem with doing so is that the list may be empty, resulting in an invalud query being generated (`IN ()` and `NOT IN ()` are not valid SQL). What is worse, this failure will happen at runtime.
 Additionaly, by doing so with lists of varying length, a new prepared statement will be created at runtime for each one of the lengths.
