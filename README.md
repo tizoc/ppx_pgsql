@@ -109,3 +109,13 @@ WHERE id NOT IN $@user_ids_list
 SELECT COUNT(*) FROM users
 WHERE id <> ALL($user_ids_list::int[])
 ```
+
+Another option is to use the `unnest` array function and an inner `SELECT`:
+
+```sql
+SELECT COUNT(*) FROM users
+WHERE id IN (SELECT unnest($user_ids_list::int[]))
+
+SELECT COUNT(*) FROM users
+WHERE id NOT IN (SELECT unnest($user_ids_list::int[]))
+```
