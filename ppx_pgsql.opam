@@ -10,10 +10,10 @@ build: [
 ]
 depends: [
     "pgocaml"
-    "ppxlib"
     "dune"                    {build & >= "1.0"}
     "ocamlfind"               {build}
     "ocaml-migrate-parsetree" {>= "0.4"}
+    "ppx_tools_versioned"
 ]
 tags: ["postgresql" "pgocaml" "ppx"]
 available: [
